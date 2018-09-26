@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.mycompany</groupId>
+	<artifactId>base</artifactId>
+	<version>1.0.0</version>
+	<packaging>pom</packaging>
+
+	<!-- Each project that inherits will need to provide their own scm connections -->
+	<scm>
+		<connection>scm:git:ssh://git@github.com:setu9760/base.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com:setu9760/base.git</developerConnection>
+		<url>https://github.com/setu9760/base</url>
+	</scm>
+
+	<properties>
+		<!--sonar.host.url>http://localhost:9000/sonar</sonar.host.url-->
+		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+		<sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
+		<!-- <sonar.junit.reportsPath>${project.basedir}/target/surefire-reports</sonar.junit.reportsPath> -->
+		<sonar.issuesReport.console.enable>true</sonar.issuesReport.console.enable>
+		<sonar.issuesReport.html.enable>true</sonar.issuesReport.html.enable>
+		<sonar.scm.disabled>true</sonar.scm.disabled>
+		<sonar.coverage.exclusion>target/**/*.java</sonar.coverage.exclusion>
+		<sonar.javascript.lcov.reportPath>target/js-coverage/lcov.info</sonar.javascript.lcov.reportPath>
+		<sonar.javascript.jstestdriver.reportsPath>target/js-unit-tests</sonar.javascript.jstestdriver.reportsPath>
+		<failsafe.version>2.18</failsafe.version>
+		<surefire.version>2.17</surefire.version>
+		<jacoco-maven.version>0.7.4.201502262128</jacoco-maven.version>
+		<versions-maven-plugin.version>2.4</versions-maven-plugin.version>
+	</properties>
+
+	<build>
+
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-failsafe-plugin</artifactId>
+					<version>${failsafe.version}</version>
+					<configuration>
+						<!-- Sets the VM argument line used when integration tests are run. -->
+						<argLine>${failsafeArgLine}</argLine>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>${surefire.version}</version>
+					<configuration>
+						<!-- Sets the VM argument line used when unit tests are run. -->
+						<argLine>${surefireArgLine}</argLine>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>sonar-maven-plugin</artifactId>
+					<version>2.7.1</version>
+				</plugin>
+				<plugin>
+					<groupId>org.jacoco</groupId>
+					<artifactId>jacoco-maven-plugin</artifactId>
+					<version>${jacoco-maven.version}</version>
+					<executions>
+						<execution>
+							<id>default-prepare-agent</id>
+							<goals>
+								<goal>prepare-agent</goal>
+							</goals>
+							<configuration>
+								<destFile>${project.build.directory}/jacoco.exec</destFile>
+								<propertyName>surefireArgLine</propertyName>
+							</configuration>
+						</execution>
+						<execution>
+							<id>default-prepare-agent-integration</id>
+							<goals>
+								<goal>prepare-agent-integration</goal>
+							</goals>
+							<configuration>
+								<destFile>${project.build.directory}/coverage-reports/jacoco-it.exec</destFile>
+								<propertyName>failsafeArgLine</propertyName>
+							</configuration>
+						</execution>
+						<execution>
+							<id>default-report</id>
+							<goals>
+								<goal>report</goal>
+							</goals>
+							<configuration>
+								<dataFile>${project.build.directory}/jacoco.exec</dataFile>
+								<outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+							</configuration>
+						</execution>
+						<execution>
+							<id>default-report-integration</id>
+							<goals>
+								<goal>report-integration</goal>
+							</goals>
+							<configuration>
+								<dataFile>${project.build.directory}/coverage-reports/jacoco-it.exec</dataFile>
+								<outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>acceptance-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<version>${failsafe.version}</version>
+						<configuration>
+							<!--  keep the argline on a single line else it fails -->
+							<argLine>-Xmx512m -XX:MaxPermSize=512m -Dtarget.server=${test.target.server} ${failsafeArgLine}</argLine>
+							<includes>
+								<include>**/*AT.java</include>
+							</includes>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>${surefire.version}</version>
+						<configuration>
+							<argLine>-XX:PermSize=512m -Xmx512m -XX:MaxPermSize=1024m</argLine>
+							<!-- skips surefire tests without skipping failsafe tests. Property 
+								value seems to magically default to false -->
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>acceptance-tests-wip</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<version>${failsafe.version}</version>
+						<configuration>
+							<!--  keep the argline on a single line else it fails -->
+							<argLine> -Xmx512m -XX:MaxPermSize=256m	-Dtarget.server=${test.target.server} ${failsafeArgLine}</argLine>
+							<includes>
+								<include>**/*WIP.java</include>
+							</includes>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>${surefire.version}</version>
+						<configuration>
+							<!-- skips surefire tests without skipping failsafe tests. Property 
+								value seems to magically default to false -->
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+
+		<profile>
+			<id>performance-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<version>${failsafe.version}</version>
+						<configuration>
+							<!--  keep the argline on a single line else it fails -->
+							<argLine> -Xmx1512m -XX:MaxPermSize=256m -Dtarget.server=${test.target.server} ${failsafeArgLine}</argLine>
+							<includes>
+								<include>**/*PT.java</include>
+							</includes>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>${surefire.version}</version>
+						<configuration>
+							<!-- skips surefire tests without skipping failsafe tests. Property 
+								value seems to magically default to false -->
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>24H-performance-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<version>${failsafe.version}</version>
+						<configuration>
+							<!--  keep the argline on a single line else it fails -->
+							<argLine> -Xmx512m -XX:MaxPermSize=256m	-Dtarget.server=${test.target.server} ${failsafeArgLine}</argLine>
+							<includes>
+								<include>**/*PT24H.java</include>
+							</includes>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>${surefire.version}</version>
+						<configuration>
+							<!-- skips surefire tests without skipping failsafe tests. Property 
+								value seems to magically default to false -->
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>aspirational-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<version>${failsafe.version}</version>
+						<configuration>
+							<!--  keep the argline on a single line else it fails -->
+							<argLine> -Xmx512m -XX:MaxPermSize=256m	-Dtarget.server=${test.target.server} ${failsafeArgLine}</argLine>
+							<includes>
+								<include>**/*ASP.java</include>
+							</includes>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>${surefire.version}</version>
+						<configuration>
+							<!-- skips surefire tests without skipping failsafe tests. Property 
+								value seems to magically default to false -->
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>prepare-release</id>
+			<activation>
+				<property>
+					<name>prepare-release</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<!-- This plugin will populate a parsed version of the major minor incremental 
+						verison which can then be used to remove the snapshot -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<version>1.11</version>
+						<executions>
+							<execution>
+								<id>parse-version</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>parse-version</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<!-- This plugin removes the snapshot from the project version in top 
+						pom -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>versions-maven-plugin</artifactId>
+						<version>${versions-maven-plugin.version}</version>
+
+						<executions>
+							<execution>
+								<phase>validate</phase>
+								<id>set-to-release</id>
+								<goals>
+									<goal>set</goal>
+								</goals>
+								<configuration>
+									<newVersion>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</newVersion>
+								</configuration>
+							</execution>
+							<execution>
+								<phase>validate</phase>
+								<id>set-child-modules-to-parent</id>
+								<goals>
+									<goal>update-child-modules</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<!-- if we are releasing we should have no snapshots in the project -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-enforcer-plugin</artifactId>
+						<version>1.4.1</version>
+						<executions>
+							<execution>
+								<id>enforce-no-snapshots</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>enforce</goal>
+								</goals>
+								<configuration>
+									<rules>
+										<requireReleaseDeps>
+											<message>No Snapshots Allowed!</message>
+										</requireReleaseDeps>
+									</rules>
+									<fail>true</fail>
+									
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.4</version>
+						<executions>
+							<execution>
+								<phase>validate</phase>
+								<configuration>
+									<tasks>
+										<echo file="version.properties">tag=${project.artifactId}-${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}${build-number}</echo>
+									</tasks>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-scm-plugin</artifactId>
+						<version>1.8.1</version>
+						<configuration>
+							<tag>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}${build-number}</tag>
+						</configuration>
+						<executions>
+							<execution>
+								<id>checkin</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>add</goal>
+									<goal>checkin</goal>
+								</goals>
+								<configuration>
+									<pushChanges>false</pushChanges>
+									<message>Maven removing snapshot to prepare for release</message>
+									<includes>pom.xml, **/pom.xml </includes>
+								</configuration>
+							</execution>
+							<execution>
+								<id>tag-release</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>tag</goal>
+								</goals>
+								<configuration>
+									<message>Maven tagging Release</message>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>enforce</id>
+			<build>
+				<plugins>
+					<!-- if we are releasing we should have no snapshots in the project -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-enforcer-plugin</artifactId>
+						<version>1.4.1</version>
+						<executions>
+							<execution>
+								<id>enforce-no-snapshots</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>enforce</goal>
+								</goals>
+								<configuration>
+									<rules>
+										<requireReleaseDeps>
+											<message>No Snapshots Allowed!</message>
+										</requireReleaseDeps>
+									</rules>
+									<fail>true</fail>
+		
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		
+		</profile>
+		<profile>
+			<id>next-development-version</id>
+			<activation>
+				<property>
+					<name>increment-version</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<!-- This plugin will populate a parsed version of the major minor incremental 
+						verison which can then be used to remove the snapshot -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<version>1.11</version>
+						<executions>
+							<execution>
+								<id>parse-version</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>parse-version</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>versions-maven-plugin</artifactId>
+						<version>${versions-maven-plugin.version}</version>
+						<executions>
+							<execution>
+								<phase>validate</phase>
+								<id>increment-version</id>
+								<goals>
+									<goal>set</goal>
+								</goals>
+								<configuration>
+									<newVersion>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}-SNAPSHOT</newVersion>
+								</configuration>
+							</execution>
+							<execution>
+								<phase>validate</phase>
+								<id>set-child-modules-to-parent</id>
+								<goals>
+									<goal>update-child-modules</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-scm-plugin</artifactId>
+						<version>1.8.1</version>
+						<executions>
+							<execution>
+								<id>checkin</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>add</goal>
+									<goal>checkin</goal>
+								</goals>
+								<configuration>
+									<pushChanges>true</pushChanges>
+									<message>Maven incrementing version</message>
+									<includes>pom.xml, **/pom.xml</includes>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>
